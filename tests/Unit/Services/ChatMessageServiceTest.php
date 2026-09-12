@@ -50,7 +50,18 @@ class ChatMessageServiceTest extends TestCase
     {
         $sanitized = $this->service->sanitizeMessage("<script>alert('x')</script>Hello   <b>world</b>\n\n!");
 
-        $this->assertSame('Hello world !', $sanitized);
+        $this->assertSame("Hello world\n\n!", $sanitized);
+    }
+
+    public function test_rejects_messages_that_are_empty_after_sanitizing(): void
+    {
+        $this->assertFalse($this->service->validateMessage('<script>alert(1)</script>')['valid']);
+    }
+
+    public function test_preserves_multiline_text_from_the_composer(): void
+    {
+        $message = "第一行\r\n第二行\r\n\r\n第三行";
+        $this->assertSame("第一行\n第二行\n\n第三行", $this->service->validateMessage($message)['sanitized_message']);
     }
 
     public function test_process_mentions_finds_users_case_insensitively(): void

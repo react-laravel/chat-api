@@ -34,7 +34,7 @@ class SendMessageRequestTest extends TestCase
 
         $this->assertStringContainsString('required', $rules['message']);
         $this->assertStringContainsString('string', $rules['message']);
-        $this->assertStringContainsString('max:2000', $rules['message']);
+        $this->assertStringContainsString('max:1000', $rules['message']);
     }
 
     public function test_message_type_validation_rules()
@@ -76,7 +76,7 @@ class SendMessageRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('Message cannot exceed 2000 characters.', $messages['message.max']);
+        $this->assertEquals('Message cannot exceed 1000 characters.', $messages['message.max']);
     }
 
     public function test_message_type_in_message()

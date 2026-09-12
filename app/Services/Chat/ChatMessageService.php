@@ -39,7 +39,7 @@ class ChatMessageService
         $errors = [];
 
         // Trim whitespace
-        $message = trim($message);
+        $message = $this->sanitizeMessage($message);
         $messageLength = mb_strlen($message);
 
         // Check length
@@ -67,8 +67,9 @@ class ChatMessageService
         $message = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $message);
         $message = strip_tags($message);
 
-        // Normalize whitespace
-        $message = preg_replace('/\s+/', ' ', $message);
+        // Keep line breaks entered by the composer, including blank lines.
+        $message = str_replace(["\r\n", "\r"], "\n", $message);
+        $message = preg_replace('/[^\S\n]+/u', ' ', $message);
 
         return trim($message);
     }
@@ -183,7 +184,8 @@ class ChatMessageService
     {
         $query = ChatMessage::with(['user:id,name,email'])
             ->forRoom($roomId)
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc');
 
         return $query->jsonPaginate();
     }

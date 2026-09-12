@@ -37,6 +37,25 @@ class ChatControllerTest extends TestCase
         Sanctum::actingAs($this->user);
     }
 
+    public function test_history_pages_are_stable_for_messages_created_at_the_same_time(): void
+    {
+        ChatRoomUser::factory()->create(['room_id' => $this->room->id, 'user_id' => $this->user->id]);
+        $messages = ChatMessage::factory()->count(35)->create([
+            'room_id' => $this->room->id,
+            'user_id' => $this->user->id,
+            'created_at' => now(),
+        ]);
+
+        $first = $this->getJson('/api/chat/rooms/'.$this->room->id.'/messages?page[number]=1');
+        $second = $this->getJson('/api/chat/rooms/'.$this->room->id.'/messages?page[number]=2');
+        $first->assertOk()->assertJsonPath('current_page', 1)->assertJsonPath('last_page', 2);
+        $second->assertOk()->assertJsonPath('current_page', 2)->assertJsonCount(5, 'data');
+        $this->assertSame(
+            $messages->pluck('id')->reverse()->values()->all(),
+            array_merge(array_column($first->json('data'), 'id'), array_column($second->json('data'), 'id'))
+        );
+    }
+
     public function test_get_rooms_returns_active_rooms()
     {
         $activeRoom = ChatRoom::factory()->create(['is_active' => true]);

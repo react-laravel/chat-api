@@ -23,7 +23,7 @@ class SendMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message' => 'required|string|max:2000',
+            'message' => 'required|string|max:1000',
             'message_type' => 'nullable|string|in:text,system',
         ];
     }
@@ -50,7 +50,7 @@ class SendMessageRequest extends FormRequest
     {
         return [
             'message.required' => 'Message content is required.',
-            'message.max' => 'Message cannot exceed 2000 characters.',
+            'message.max' => 'Message cannot exceed 1000 characters.',
             'message_type.in' => 'Message type must be either text or system.',
         ];
     }
