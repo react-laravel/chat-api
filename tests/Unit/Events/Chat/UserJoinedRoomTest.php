@@ -24,8 +24,8 @@ class UserJoinedRoomTest extends TestCase
         $channels = $event->broadcastOn();
 
         $this->assertCount(2, $channels);
-        $this->assertSame('chat-room-7', $channels[0]->name);
-        $this->assertSame('chat-rooms-list', $channels[1]->name);
+        $this->assertSame('private-chat-room-7', $channels[0]->name);
+        $this->assertSame('private-chat-rooms-list', $channels[1]->name);
     }
 
     public function test_broadcast_as_returns_user_joined_room(): void

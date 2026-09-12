@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Chat;
 
 use App\Events\Chat\MessageDeleted;
+use App\Events\Chat\RoomActivity;
 use App\Events\Chat\UserBanned;
 use App\Events\Chat\UserMuted;
 use App\Events\Chat\UserUnbanned;
@@ -14,6 +15,8 @@ use App\Http\Requests\Chat\MuteChatUserRequest;
 use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatModerationAction;
 use App\Models\User;
+use App\Services\Chat\ChatCacheService;
+use App\Services\Chat\ChatRealtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +24,8 @@ use Illuminate\Support\Facades\Log;
 class ChatModerationController extends Controller
 {
     use ChatControllerHelpers;
+
+    public function __construct(protected ChatCacheService $cacheService) {}
 
     /**
      * Delete a message (admin/moderator only).
@@ -65,7 +70,10 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the deletion
-            broadcast(new MessageDeleted($messageId, $roomId, $moderator->id, $reason));
+            $this->cacheService->invalidateMessageHistory($roomId);
+            $this->clearRoomCache($roomId);
+            ChatRealtime::publish(new MessageDeleted($messageId, $roomId, $moderator->id, $reason));
+            ChatRealtime::publish(new RoomActivity($roomId));
 
             return $this->success([
                 'action' => 'delete_message',
@@ -140,7 +148,7 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the mute action
-            broadcast(new UserMuted($roomId, $userId, $moderator->id, $duration, $reason));
+            ChatRealtime::publish(new UserMuted($roomId, $userId, $moderator->id, $duration, $reason));
 
             return $this->success([
                 'action' => 'mute_user',
@@ -211,7 +219,7 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the unmute action
-            broadcast(new UserUnmuted($roomId, $userId, $moderator->id, $reason));
+            ChatRealtime::publish(new UserUnmuted($roomId, $userId, $moderator->id, $reason));
 
             return $this->success([
                 'action' => 'unmute_user',
@@ -287,7 +295,7 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the ban action
-            broadcast(new UserBanned($roomId, $userId, $moderator->id, $duration, $reason));
+            ChatRealtime::publish(new UserBanned($roomId, $userId, $moderator->id, $duration, $reason));
 
             return $this->success([
                 'action' => 'ban_user',
@@ -358,7 +366,7 @@ class ChatModerationController extends Controller
             DB::commit();
 
             // Broadcast the unban action
-            broadcast(new UserUnbanned($roomId, $userId, $moderator->id, $reason));
+            ChatRealtime::publish(new UserUnbanned($roomId, $userId, $moderator->id, $reason));
 
             return $this->success([
                 'action' => 'unban_user',

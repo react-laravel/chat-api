@@ -1,15 +1,28 @@
 <?php
 
+use App\Http\Controllers\Api\Chat\ChatAttachmentController;
+use App\Http\Controllers\Api\Chat\ChatMemberController;
 use App\Http\Controllers\Api\Chat\ChatMessageController;
+use App\Http\Controllers\Api\Chat\ChatMessageInteractionController;
 use App\Http\Controllers\Api\Chat\ChatModerationController;
 use App\Http\Controllers\Api\Chat\ChatModerationLogController;
 use App\Http\Controllers\Api\Chat\ChatPresenceController;
+use App\Http\Controllers\Api\Chat\ChatReadController;
 use App\Http\Controllers\Api\Chat\ChatReportController;
 use App\Http\Controllers\Api\Chat\ChatRoomController;
+use App\Http\Controllers\Api\Chat\ChatRoomInviteController;
 use App\Http\Controllers\Api\Chat\ChatUserModerationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('chat')->group(function () {
+    Route::post('/invites/accept', [ChatRoomInviteController::class, 'accept'])->middleware('throttle:30,1');
+    Route::get('/rooms/{roomId}/invites', [ChatRoomInviteController::class, 'index']);
+    Route::post('/rooms/{roomId}/invites', [ChatRoomInviteController::class, 'store'])->middleware('throttle:20,1');
+    Route::delete('/rooms/{roomId}/invites/{inviteId}', [ChatRoomInviteController::class, 'destroy']);
+
+    Route::get('/rooms/{roomId}/members', [ChatMemberController::class, 'index']);
+    Route::put('/rooms/{roomId}/read', [ChatReadController::class, 'update'])->middleware('throttle:120,1');
+
     // Room management endpoints
     Route::get('/rooms', [ChatRoomController::class, 'index']);
     Route::post('/rooms', [ChatRoomController::class, 'store'])->middleware('idempotency');
@@ -18,7 +31,15 @@ Route::prefix('chat')->group(function () {
     Route::post('/rooms/{roomId}/leave', [ChatRoomController::class, 'leave'])->middleware('idempotency');
     Route::delete('/rooms/{roomId}', [ChatRoomController::class, 'destroy']);
 
+    Route::get('/rooms/{roomId}/attachments/drafts', [ChatAttachmentController::class, 'drafts']);
+    Route::post('/rooms/{roomId}/attachments', [ChatAttachmentController::class, 'store'])->middleware('throttle:20,1');
+    Route::get('/rooms/{roomId}/attachments/{attachmentId}', [ChatAttachmentController::class, 'show']);
+    Route::delete('/rooms/{roomId}/attachments/{attachmentId}', [ChatAttachmentController::class, 'destroy']);
+
     // Message handling endpoints
+    Route::get('/rooms/{roomId}/messages/search', [ChatMessageInteractionController::class, 'search']);
+    Route::patch('/rooms/{roomId}/messages/{messageId}', [ChatMessageInteractionController::class, 'update'])->middleware('throttle:60,1');
+    Route::match(['put', 'delete'], '/rooms/{roomId}/messages/{messageId}/reactions', [ChatMessageInteractionController::class, 'reaction'])->middleware('throttle:120,1');
     Route::get('/rooms/{roomId}/messages', [ChatMessageController::class, 'index']);
     Route::post('/rooms/{roomId}/messages', [ChatMessageController::class, 'store'])->middleware('idempotency', 'throttle:chat-message');
     Route::delete('/rooms/{roomId}/messages/{messageId}', [ChatMessageController::class, 'destroy']);

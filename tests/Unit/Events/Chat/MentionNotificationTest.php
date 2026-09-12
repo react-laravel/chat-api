@@ -35,7 +35,7 @@ class MentionNotificationTest extends TestCase
         $this->assertInstanceOf(PrivateChannel::class, $channels[0]);
         $this->assertInstanceOf(Channel::class, $channels[1]);
         $this->assertEquals("private-user.{$mentionedUser->id}.notifications", $channels[0]->name);
-        $this->assertEquals("chat.room.{$room->id}", $channels[1]->name);
+        $this->assertEquals("private-chat.room.{$room->id}", $channels[1]->name);
     }
 
     public function test_mention_notification_event_has_correct_broadcast_name()

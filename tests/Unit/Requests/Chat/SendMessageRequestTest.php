@@ -43,7 +43,7 @@ class SendMessageRequestTest extends TestCase
 
         $this->assertStringContainsString('nullable', $rules['message_type']);
         $this->assertStringContainsString('string', $rules['message_type']);
-        $this->assertStringContainsString('in:text,system', $rules['message_type']);
+        $this->assertStringContainsString('in:text', $rules['message_type']);
     }
 
     public function test_validation_attributes_contain_custom_attributes()
@@ -83,6 +83,6 @@ class SendMessageRequestTest extends TestCase
     {
         $messages = $this->request->messages();
 
-        $this->assertEquals('Message type must be either text or system.', $messages['message_type.in']);
+        $this->assertEquals('Only text messages can be sent by users.', $messages['message_type.in']);
     }
 }

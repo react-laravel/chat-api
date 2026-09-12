@@ -27,7 +27,7 @@ class UserMutedTest extends TestCase
         // Assert
         $this->assertCount(1, $channels);
         $this->assertInstanceOf(Channel::class, $channels[0]);
-        $this->assertEquals("chat.room.{$room->id}", $channels[0]->name);
+        $this->assertEquals("private-chat.room.{$room->id}", $channels[0]->name);
     }
 
     public function test_user_muted_event_has_correct_broadcast_name()

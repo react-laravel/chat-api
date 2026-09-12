@@ -21,7 +21,7 @@ class ChatModerationControllerUnitTest extends TestCase
     {
         $room = ChatRoom::factory()->create(['is_active' => true]);
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('findActiveRoom');
@@ -36,7 +36,7 @@ class ChatModerationControllerUnitTest extends TestCase
     {
         $room = ChatRoom::factory()->create(['is_active' => false]);
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('findActiveRoom');
@@ -56,7 +56,7 @@ class ChatModerationControllerUnitTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('findRoomUser');
@@ -74,7 +74,7 @@ class ChatModerationControllerUnitTest extends TestCase
         $room = ChatRoom::factory()->create();
         $user = User::factory()->create();
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('findRoomUser');
@@ -94,7 +94,7 @@ class ChatModerationControllerUnitTest extends TestCase
         // For Auth::user() mock
         Auth::shouldReceive('user')->andReturn($user);
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('getModerator');
@@ -111,7 +111,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
         $room = Mockery::mock('App\Models\Chat\ChatRoom');
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('ensureCanModerate');
@@ -128,7 +128,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
         $room = Mockery::mock('App\Models\Chat\ChatRoom');
 
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('ensureCanModerate');
@@ -142,7 +142,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_ensure_not_self_moderation_returns_null_when_different_users(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('ensureNotSelfModeration');
@@ -154,7 +154,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_ensure_not_self_moderation_returns_422_when_same_user(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('ensureNotSelfModeration');
@@ -168,7 +168,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_log_and_error_returns_500_json_response(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('logAndError');
@@ -191,7 +191,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_log_and_error_returns_custom_status_code(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('logAndError');
@@ -212,7 +212,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_parse_moderation_filters_extracts_parameters(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('parseModerationFilters');
@@ -232,7 +232,7 @@ class ChatModerationControllerUnitTest extends TestCase
 
     public function test_parse_moderation_filters_uses_default_per_page(): void
     {
-        $controller = new ChatModerationController;
+        $controller = app(ChatModerationController::class);
 
         $reflection = new ReflectionClass(ChatModerationController::class);
         $method = $reflection->getMethod('parseModerationFilters');

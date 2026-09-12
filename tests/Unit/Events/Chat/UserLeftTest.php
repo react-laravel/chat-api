@@ -27,7 +27,7 @@ class UserLeftTest extends TestCase
         $this->assertCount(2, $channels);
         $this->assertInstanceOf(Channel::class, $channels[0]);
         $this->assertInstanceOf(PresenceChannel::class, $channels[1]);
-        $this->assertEquals("chat.room.{$roomId}", $channels[0]->name);
+        $this->assertEquals("private-chat.room.{$roomId}", $channels[0]->name);
         $this->assertEquals("presence-chat.room.{$roomId}.presence", $channels[1]->name);
     }
 

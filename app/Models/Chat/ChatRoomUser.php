@@ -17,6 +17,8 @@ class ChatRoomUser extends Model
         'user_id',
         'joined_at',
         'last_seen_at',
+        'last_read_message_id',
+        'last_read_at',
         'is_online',
         'is_muted',
         'muted_until',
@@ -29,6 +31,8 @@ class ChatRoomUser extends Model
     protected $casts = [
         'joined_at' => 'datetime',
         'last_seen_at' => 'datetime',
+        'last_read_at' => 'datetime',
+        'last_read_message_id' => 'integer',
         'is_online' => 'boolean',
         'is_muted' => 'boolean',
         'muted_until' => 'datetime',

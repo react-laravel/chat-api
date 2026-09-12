@@ -13,7 +13,7 @@ PREVIOUS="$(readlink -f "$CURRENT" 2>/dev/null || true)"
 
 mkdir -p "$RELEASES" "$SHARED/storage/framework/cache/data" \
   "$SHARED/storage/framework/sessions" "$SHARED/storage/framework/views" \
-  "$SHARED/storage/logs" "$SHARED/storage/app/public"
+  "$SHARED/storage/logs" "$SHARED/storage/app/public" "$SHARED/storage/app/private"
 test -s "$SHARED/.env"
 
 cleanup() { rm -rf "$STAGING"; }

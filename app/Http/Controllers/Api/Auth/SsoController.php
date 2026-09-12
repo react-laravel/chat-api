@@ -9,6 +9,7 @@ use App\Services\Chat\ChatIntegrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use Laravel\Sanctum\PersonalAccessToken;
 use RuntimeException;
 
 class SsoController extends Controller
@@ -68,6 +69,10 @@ class SsoController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $token = $request->user()?->currentAccessToken();
+        if ($token instanceof PersonalAccessToken && $token->exists) {
+            $token->delete();
+        }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

@@ -37,7 +37,7 @@ class ChatRoomUserTest extends TestCase
     public function test_chat_room_user_has_fillable_attributes()
     {
         $fillable = [
-            'room_id', 'user_id', 'joined_at', 'last_seen_at', 'is_online',
+            'room_id', 'user_id', 'joined_at', 'last_seen_at', 'last_read_message_id', 'last_read_at', 'is_online',
             'is_muted', 'muted_until', 'is_banned', 'banned_until', 'muted_by', 'banned_by',
         ];
 

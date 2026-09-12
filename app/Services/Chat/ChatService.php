@@ -95,9 +95,9 @@ class ChatService
     /**
      * Process message
      */
-    public function processMessage(int $roomId, int $userId, string $message, string $messageType = ChatMessage::TYPE_TEXT): array
+    public function processMessage(int $roomId, int $userId, string $message, string $messageType = ChatMessage::TYPE_TEXT, ?int $replyToId = null, array $attachmentIds = []): array
     {
-        return $this->messageService->processMessage($roomId, $userId, $message, $messageType);
+        return $this->messageService->processMessage($roomId, $userId, $message, $messageType, ...($attachmentIds !== [] ? [$replyToId, $attachmentIds] : ($replyToId !== null ? [$replyToId] : [])));
     }
 
     /**

@@ -407,7 +407,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'Failed to join room',
+                'message' => 'Room not found or inactive',
             ]);
     }
 }

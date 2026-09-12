@@ -2,8 +2,8 @@
 
 namespace App\Events\Chat;
 
+use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\Chat\ChatMessage;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -30,9 +30,7 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new Channel("chat.room.{$this->message->room_id}"),
-        ];
+        return $this->message->room?->messageBroadcastChannels() ?? [];
     }
 
     /**
@@ -50,20 +48,6 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        return [
-            'message' => [
-                'id' => $this->message->id,
-                'room_id' => $this->message->room_id,
-                'user_id' => $this->message->user_id,
-                'message' => $this->message->message,
-                'message_type' => $this->message->message_type,
-                'created_at' => $this->message->created_at->toISOString(),
-                'user' => [
-                    'id' => $this->message->user->id,
-                    'name' => $this->message->user->name,
-                    'email' => $this->message->user->email,
-                ],
-            ],
-        ];
+        return ['message' => (new ChatMessageResource($this->message->loadMissing(ChatMessage::DISPLAY_RELATIONS)))->resolve()];
     }
 }

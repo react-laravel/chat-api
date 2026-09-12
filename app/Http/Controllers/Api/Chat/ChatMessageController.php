@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Chat;
 
 use App\Events\Chat\MessageDeleted;
 use App\Events\Chat\MessageSent;
+use App\Events\Chat\RoomActivity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\SendMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
@@ -11,6 +12,7 @@ use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Services\Chat\ChatCacheService;
+use App\Services\Chat\ChatRealtime;
 use App\Services\Chat\ChatService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +52,8 @@ class ChatMessageController extends Controller
 
             $paginated = $this->chatService->getMessageHistoryPaginated($resolvedRoomId);
 
+            $paginated->setCollection($paginated->getCollection()->map(fn ($message) => (new ChatMessageResource($message))->resolve()));
+
             return response()->json($paginated);
         } catch (\Throwable $e) {
             return $this->logAndError(
@@ -86,8 +90,9 @@ class ChatMessageController extends Controller
             $result = $this->chatService->processMessage(
                 $resolvedRoomId,
                 $userId,
-                $request->message,
-                $request->message_type ?? ChatMessage::TYPE_TEXT
+                $request->message ?? '',
+                $request->message_type ?? ChatMessage::TYPE_TEXT,
+                ...($request->filled('attachment_ids') ? [$request->integer('reply_to_id') ?: null, $request->input('attachment_ids')] : ($request->filled('reply_to_id') ? [(int) $request->reply_to_id] : []))
             );
 
             if (empty($result['success'])) {
@@ -103,7 +108,8 @@ class ChatMessageController extends Controller
             $this->cacheService->invalidateMessageHistory($resolvedRoomId);
             $this->logRoomActivity($resolvedRoomId, 'message_sent', $userId);
 
-            broadcast(new MessageSent($result['message']));
+            ChatRealtime::publish(new MessageSent($result['message']));
+            ChatRealtime::publish(new RoomActivity($resolvedRoomId));
 
             Log::info('Message sent', [
                 'message_id' => $result['message']->id,
@@ -153,7 +159,10 @@ class ChatMessageController extends Controller
             $message->delete();
             DB::commit();
 
-            broadcast(new MessageDeleted($deletedMessageId, $deletedRoomId, $userId));
+            $this->cacheService->invalidateMessageHistory($resolvedRoomId);
+            $this->clearRoomCache($resolvedRoomId);
+            ChatRealtime::publish(new MessageDeleted($deletedMessageId, $deletedRoomId, $userId));
+            ChatRealtime::publish(new RoomActivity($resolvedRoomId));
 
             Log::info('Message deleted', [
                 'message_id' => $deletedMessageId,

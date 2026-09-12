@@ -2,8 +2,9 @@
 
 namespace App\Events\Chat;
 
-use Illuminate\Broadcasting\Channel;
+use App\Models\Chat\ChatRoom;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -36,10 +37,12 @@ class UserJoinedRoom implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new Channel('chat-room-'.$this->roomId),
-            new Channel('chat-rooms-list'), // 广播到房间列表频道
-        ];
+        $channels = [new PrivateChannel('chat-room-'.$this->roomId)];
+        if (! ChatRoom::whereKey($this->roomId)->where('is_private', true)->exists()) {
+            $channels[] = new PrivateChannel('chat-rooms-list');
+        }
+
+        return $channels;
     }
 
     /**

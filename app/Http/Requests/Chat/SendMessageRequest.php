@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Chat;
 
+use App\Models\Chat\ChatAttachment;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SendMessageRequest extends FormRequest
 {
@@ -23,8 +25,12 @@ class SendMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message' => 'required|string|max:1000',
-            'message_type' => 'nullable|string|in:text,system',
+            'message' => 'required_without:attachment_ids|nullable|string|max:1000',
+            'attachment_ids' => ['nullable', 'array', 'max:'.ChatAttachment::MAX_FILES_PER_MESSAGE],
+            'attachment_ids.*' => ['integer', 'distinct', Rule::exists('chat_attachments', 'id')->where('room_id', $this->route('roomId'))->where('user_id', $this->user()?->id)->whereNull('message_id')],
+            'message_type' => 'nullable|string|in:text',
+            'reply_to_id' => ['nullable', 'integer', Rule::exists('chat_messages', 'id')
+                ->where('room_id', $this->route('roomId'))->whereNull('deleted_at')],
         ];
     }
 
@@ -51,7 +57,7 @@ class SendMessageRequest extends FormRequest
         return [
             'message.required' => 'Message content is required.',
             'message.max' => 'Message cannot exceed 1000 characters.',
-            'message_type.in' => 'Message type must be either text or system.',
+            'message_type.in' => 'Only text messages can be sent by users.',
         ];
     }
 

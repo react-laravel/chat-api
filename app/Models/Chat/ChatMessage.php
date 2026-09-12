@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -27,6 +28,9 @@ class ChatMessage extends Model
         'user_id',
         'message',
         'message_type',
+        'reply_to_id',
+        'edited_at',
+        'revision',
     ];
 
     protected $casts = [
@@ -34,11 +38,31 @@ class ChatMessage extends Model
         'updated_at' => 'datetime',
         'room_id' => 'integer',
         'user_id' => 'integer',
+        'reply_to_id' => 'integer',
+        'edited_at' => 'datetime',
+        'revision' => 'integer',
     ];
 
     /**
      * Message type constants
      */
+    public const DISPLAY_RELATIONS = ['user:id,name,email', 'replyTo.user:id,name,email', 'replyTo.attachments', 'reactions', 'attachments'];
+
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id')->withTrashed();
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ChatAttachment::class, 'message_id');
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(ChatMessageReaction::class, 'message_id');
+    }
+
     const TYPE_TEXT = 'text';
 
     const TYPE_SYSTEM = 'system';

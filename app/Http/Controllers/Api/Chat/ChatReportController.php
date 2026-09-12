@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers\Api\Chat;
 
+use App\Events\Chat\MessageDeleted;
+use App\Events\Chat\RoomActivity;
+use App\Events\Chat\UserMuted;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\ReportMessageRequest;
 use App\Http\Requests\Chat\ReviewReportRequest;
+use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatMessageReport;
 use App\Models\Chat\ChatModerationAction;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
+use App\Services\Chat\ChatCacheService;
+use App\Services\Chat\ChatRealtime;
 use App\Services\Chat\ContentFilterService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
@@ -88,6 +94,12 @@ class ChatReportController extends Controller
                 return $report;
             });
 
+            if (ChatMessage::withTrashed()->find($messageId)?->trashed()) {
+                app(ChatCacheService::class)->invalidateMessageHistory($roomId);
+                ChatRealtime::publish(new MessageDeleted($messageId, $roomId, 0, 'Automatic moderation'));
+                ChatRealtime::publish(new RoomActivity($roomId));
+            }
+
             return $this->success([
                 'report' => $report,
                 'report_id' => $report->id,
@@ -123,6 +135,10 @@ class ChatReportController extends Controller
             ->with([
                 'reporter:id,name,email',
                 'message.user:id,name,email',
+                'message.attachments',
+                'message.replyTo.user:id,name,email',
+                'message.replyTo.attachments',
+                'message.reactions',
                 'reviewer:id,name,email',
             ])
             ->orderBy('created_at', 'desc');
@@ -136,6 +152,9 @@ class ChatReportController extends Controller
         }
 
         $paged = $query->jsonPaginate();
+        $paged->setCollection($paged->getCollection()->map(fn ($report) => array_replace($report->toArray(), [
+            'message' => $report->message ? (new ChatMessageResource($report->message))->resolve() : null,
+        ])));
         [$data, $meta] = $this->normalizePagination($paged);
 
         return $this->success([
@@ -181,6 +200,9 @@ class ChatReportController extends Controller
         }
 
         $paged = $query->jsonPaginate();
+        $paged->setCollection($paged->getCollection()->map(fn ($report) => array_replace($report->toArray(), [
+            'message' => $report->message ? (new ChatMessageResource($report->message))->resolve() : null,
+        ])));
         [$data, $meta] = $this->normalizePagination($paged);
 
         return $this->success([
@@ -248,6 +270,15 @@ class ChatReportController extends Controller
                     'actions_performed' => $actionsPerformed,
                 ];
             });
+
+            if (in_array('message_deleted', $result['actions_performed'], true) && $report->message) {
+                app(ChatCacheService::class)->invalidateMessageHistory($report->room_id);
+                ChatRealtime::publish(new MessageDeleted($report->message->id, $report->room_id, $reviewer->id));
+                ChatRealtime::publish(new RoomActivity($report->room_id));
+            }
+            if (in_array('user_muted', $result['actions_performed'], true) && $report->message) {
+                ChatRealtime::publish(new UserMuted($report->room_id, $report->message->user_id, $reviewer->id, $request->mute_duration ?? 60, $request->notes));
+            }
 
             return $this->success($result, 'Report reviewed successfully');
         } catch (\Exception $e) {
@@ -372,7 +403,9 @@ class ChatReportController extends Controller
     {
         $reportCount = ChatMessageReport::where('message_id', $messageId)
             ->where('status', ChatMessageReport::STATUS_PENDING)
-            ->whereRaw('exists (select 1 from `chat_room_users` where `chat_room_users`.`room_id` = ? and `chat_room_users`.`user_id` = `chat_message_reports`.`reported_by`)', [$roomId])
+            ->whereExists(fn ($members) => $members->selectRaw('1')->from('chat_room_users')
+                ->where('chat_room_users.room_id', $roomId)
+                ->whereColumn('chat_room_users.user_id', 'chat_message_reports.reported_by'))
             ->count();
 
         if ($reportCount < 3) {

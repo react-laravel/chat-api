@@ -117,7 +117,7 @@ class ChatRoomController extends Controller
             $result = $this->chatService->joinRoom($resolvedRoomId, $userId);
 
             if (empty($result['success'])) {
-                return $this->error('Failed to join room', $result['errors'] ?? []);
+                return $this->error($result['errors'][0] ?? 'Failed to join room', $result['errors'] ?? [], $result['status'] ?? 422);
             }
 
             $this->clearCacheAndLogActivity($resolvedRoomId, 'user_joined', $userId);

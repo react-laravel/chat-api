@@ -12,3 +12,5 @@ Schedule::command('chat:cleanup-disconnected --minutes=5')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('chat:cleanup-attachments')->daily()->withoutOverlapping()->onOneServer();

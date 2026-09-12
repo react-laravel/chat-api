@@ -67,6 +67,11 @@ class ChatPresenceController extends Controller
             [$userId, $resolvedRoomId] = $this->resolveUserAndRoomId($roomId);
             $room = $this->findActiveRoom($resolvedRoomId);
 
+            $guard = $this->ensureUserInRoom($resolvedRoomId, $userId, 'You cannot update presence in this room');
+            if ($guard) {
+                return $guard;
+            }
+
             $result = $this->chatService->processHeartbeat($resolvedRoomId, $userId);
 
             if (empty($result['success'])) {
@@ -143,6 +148,10 @@ class ChatPresenceController extends Controller
                 'joined_at' => $roomUser->joined_at,
                 'last_seen_at' => $roomUser->last_seen_at,
                 'is_inactive' => $roomUser->isInactive(),
+                'is_muted' => $roomUser->isMuted(),
+                'muted_until' => $roomUser->muted_until?->toISOString(),
+                'is_banned' => $roomUser->isBanned(),
+                'banned_until' => $roomUser->banned_until?->toISOString(),
             ], 'User presence status retrieved successfully');
         } catch (\Throwable $e) {
             return $this->logAndError(

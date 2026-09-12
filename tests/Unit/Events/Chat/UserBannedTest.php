@@ -25,9 +25,10 @@ class UserBannedTest extends TestCase
         $channels = $event->broadcastOn();
 
         // Assert
-        $this->assertCount(1, $channels);
+        $this->assertCount(2, $channels);
         $this->assertInstanceOf(Channel::class, $channels[0]);
-        $this->assertEquals("chat.room.{$room->id}", $channels[0]->name);
+        $this->assertEquals("private-chat.room.{$room->id}", $channels[0]->name);
+        $this->assertEquals("private-user.{$user->id}.notifications", $channels[1]->name);
     }
 
     public function test_user_banned_event_has_correct_broadcast_name()

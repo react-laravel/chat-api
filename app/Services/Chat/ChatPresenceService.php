@@ -6,6 +6,7 @@ use App\Events\Chat\UserJoined;
 use App\Events\Chat\UserJoinedRoom;
 use App\Events\Chat\UserLeft;
 use App\Events\Chat\UserLeftRoom;
+use App\Models\Chat\ChatMessage;
 use App\Models\Chat\ChatRoom;
 use App\Models\Chat\ChatRoomUser;
 use App\Models\User;
@@ -49,6 +50,8 @@ class ChatPresenceService
                         'user_id' => $userId,
                         'joined_at' => now(),
                         'last_seen_at' => now(),
+                        'last_read_message_id' => ChatMessage::forRoom($roomId)->max('id'),
+                        'last_read_at' => now(),
                         'is_online' => true,
                     ]);
                 } else {
@@ -96,7 +99,11 @@ class ChatPresenceService
         // Check if user is already a member (needed for private room check and re-join)
         $existingRoomUser = ChatRoomUser::inRoom($roomId)->forUser($userId)->first();
 
-        if ($room->is_private && ! $existingRoomUser) {
+        if ($existingRoomUser?->isBanned() && ! User::find($userId)?->canModerate($room)) {
+            return ['success' => false, 'errors' => ['You are banned from this room.'], 'status' => 403];
+        }
+
+        if ($room->is_private && ! $existingRoomUser && ! User::find($userId)?->isAdmin()) {
             return [
                 'success' => false,
                 'errors' => ['Private rooms are only joinable by existing members.'],

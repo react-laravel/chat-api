@@ -4,7 +4,6 @@ namespace App\Events\Chat;
 
 use App\Models\Chat\ChatMessage;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -37,7 +36,7 @@ class MentionNotification implements ShouldBroadcast
     {
         return [
             new PrivateChannel("user.{$this->mentionedUser->id}.notifications"),
-            new Channel("chat.room.{$this->message->room_id}"),
+            new PrivateChannel("chat.room.{$this->message->room_id}"),
         ];
     }
 

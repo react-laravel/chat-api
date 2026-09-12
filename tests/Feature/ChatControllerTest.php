@@ -600,6 +600,7 @@ class ChatControllerTest extends TestCase
 
     public function test_update_user_status_returns_not_found_when_service_fails()
     {
+        ChatRoomUser::factory()->create(['room_id' => $this->room->id, 'user_id' => $this->user->id]);
         $this->mock(ChatService::class, function ($mock) {
             $mock->shouldReceive('processHeartbeat')
                 ->once()

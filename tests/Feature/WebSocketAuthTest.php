@@ -54,6 +54,21 @@ class WebSocketAuthTest extends TestCase
         $response->assertJsonStructure(['auth']);
     }
 
+    public function test_private_room_subscription_rejects_nonmembers_and_banned_members(): void
+    {
+        $user = User::factory()->create();
+        $room = ChatRoom::factory()->create(['is_private' => true]);
+        $token = $user->createToken('test-token')->plainTextToken;
+        $payload = ['channel_name' => 'private-chat.room.'.$room->id, 'socket_id' => '123.456'];
+        $this->withToken($token)->postJson(self::AUTH_ENDPOINT, $payload)->assertForbidden();
+        $member = ChatRoomUser::factory()->create(['room_id' => $room->id, 'user_id' => $user->id, 'is_banned' => true, 'banned_until' => now()->addDay()]);
+        $this->withToken($token)->postJson(self::AUTH_ENDPOINT, $payload)->assertForbidden();
+        $member->update(['is_banned' => false, 'banned_until' => null]);
+        $this->withToken($token)->postJson(self::AUTH_ENDPOINT, $payload)->assertOk();
+        $room->update(['is_active' => false]);
+        $this->withToken($token)->postJson(self::AUTH_ENDPOINT, $payload)->assertForbidden();
+    }
+
     public function test_private_channel_rejects_invalid_token(): void
     {
         $response = $this->withHeaders([

@@ -2,7 +2,7 @@
 
 namespace App\Events\Chat;
 
-use Illuminate\Broadcasting\Channel;
+use App\Models\Chat\ChatRoom;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -38,9 +38,7 @@ class MessageDeleted implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new Channel("chat.room.{$this->roomId}"),
-        ];
+        return ChatRoom::find($this->roomId)?->messageBroadcastChannels() ?? [];
     }
 
     /**

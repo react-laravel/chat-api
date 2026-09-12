@@ -3,6 +3,7 @@
 namespace App\Models\Chat;
 
 use App\Models\User;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,23 @@ class ChatRoom extends Model
         'updated_at' => 'datetime',
         'created_by' => 'integer',
     ];
+
+    public function messageBroadcastChannels(): array
+    {
+        if (! $this->is_active) {
+            return [];
+        }
+        if (! $this->is_private) {
+            return [new PrivateChannel('chat.room.'.$this->id)];
+        }
+
+        // Private-room content is delivered to current eligible members, so a revoked
+        // member cannot keep receiving messages on an old room subscription.
+        return $this->roomUsers()->where(function ($members) {
+            $members->where('is_banned', false)->orWhere('banned_until', '<=', now())
+                ->orWhere('user_id', $this->created_by)->orWhereHas('user', fn ($users) => $users->where('is_admin', true));
+        })->pluck('user_id')->map(fn ($id) => new PrivateChannel('user.'.$id.'.notifications'))->all();
+    }
 
     /**
      * Get the user who created this chat room.
@@ -90,9 +108,9 @@ class ChatRoom extends Model
     /**
      * Get the count of online users in this room.
      */
-    public function getOnlineCountAttribute(): int
+    public function getOnlineCountAttribute(mixed $value = null): int
     {
-        return $this->onlineUsers()->count();
+        return $value !== null ? (int) $value : $this->onlineUsers()->count();
     }
 
     /**

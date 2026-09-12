@@ -4,8 +4,8 @@ namespace App\Events\Chat;
 
 use App\Models\Chat\ChatRoom;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -41,7 +41,7 @@ class RoomNotification implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel("chat.room.{$this->room->id}"),
+            new PrivateChannel("chat.room.{$this->room->id}"),
         ];
     }
 

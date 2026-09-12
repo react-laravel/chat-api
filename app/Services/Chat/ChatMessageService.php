@@ -2,6 +2,7 @@
 
 namespace App\Services\Chat;
 
+use App\Models\Chat\ChatAttachment;
 use App\Models\Chat\ChatMessage;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -182,7 +183,7 @@ class ChatMessageService
      */
     public function getMessageHistoryPaginated(int $roomId): LengthAwarePaginator
     {
-        $query = ChatMessage::with(['user:id,name,email'])
+        $query = ChatMessage::with(ChatMessage::DISPLAY_RELATIONS)
             ->forRoom($roomId)
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc');
@@ -193,10 +194,10 @@ class ChatMessageService
     /**
      * Process and create a new message
      */
-    public function processMessage(int $roomId, int $userId, string $message, string $messageType = ChatMessage::TYPE_TEXT): array
+    public function processMessage(int $roomId, int $userId, string $message, string $messageType = ChatMessage::TYPE_TEXT, ?int $replyToId = null, array $attachmentIds = []): array
     {
         // Validate message
-        $validation = $this->validateMessage($message);
+        $validation = trim($message) === '' && $attachmentIds !== [] ? ['valid' => true, 'sanitized_message' => '', 'errors' => []] : $this->validateMessage($message);
 
         if (! $validation['valid']) {
             return [
@@ -208,7 +209,7 @@ class ChatMessageService
         $sanitizedMessage = $validation['sanitized_message'];
 
         // Apply content filter for text messages
-        if ($messageType === ChatMessage::TYPE_TEXT) {
+        if ($messageType === ChatMessage::TYPE_TEXT && $sanitizedMessage !== '') {
             $contentFilterService = app(ContentFilterService::class);
             $filterResult = $contentFilterService->processMessage($sanitizedMessage, $userId, $roomId);
 
@@ -233,15 +234,23 @@ class ChatMessageService
 
         try {
             // Create message
-            $chatMessage = ChatMessage::create([
-                'room_id' => $roomId,
-                'user_id' => $userId,
-                'message' => $formattedMessage,
-                'message_type' => $messageType,
-            ]);
+            $chatMessage = DB::transaction(function () use ($roomId, $userId, $formattedMessage, $messageType, $replyToId, $attachmentIds) {
+                $attachments = ChatAttachment::whereIn('id', $attachmentIds)->where('room_id', $roomId)->where('user_id', $userId)
+                    ->whereNull('message_id')->where('created_at', '>=', now()->subDay())->lockForUpdate()->get();
+                if ($attachments->count() !== count($attachmentIds)) {
+                    throw new \InvalidArgumentException('附件已过期或已被发送，请重新上传。');
+                }
+                $created = ChatMessage::create(['room_id' => $roomId, 'user_id' => $userId, 'message' => $formattedMessage,
+                    'message_type' => $messageType, 'reply_to_id' => $replyToId]);
+                if ($attachments->isNotEmpty()) {
+                    ChatAttachment::whereIn('id', $attachments->pluck('id'))->update(['message_id' => $created->id]);
+                }
+
+                return $created;
+            });
 
             // Load user relationship
-            $chatMessage->load('user:id,name,email');
+            $chatMessage->load(ChatMessage::DISPLAY_RELATIONS);
 
             $result = [
                 'success' => true,

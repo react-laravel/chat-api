@@ -19,9 +19,9 @@ trait ChatControllerHelpers
      */
     protected function isUserInRoom(int $roomId, int $userId): bool
     {
-        return ChatRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->exists();
+        $member = ChatRoomUser::where('room_id', $roomId)->where('user_id', $userId)->first();
+
+        return $member && (! $member->isBanned() || auth()->user()?->canModerate($member->room));
     }
 
     /**

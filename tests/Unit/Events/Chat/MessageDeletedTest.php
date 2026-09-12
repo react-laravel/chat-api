@@ -3,16 +3,20 @@
 namespace Tests\Unit\Events\Chat;
 
 use App\Events\Chat\MessageDeleted;
+use App\Models\Chat\ChatRoom;
 use Illuminate\Broadcasting\Channel;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MessageDeletedTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_message_deleted_event_broadcasts_on_correct_channel()
     {
         // Arrange
         $messageId = 123;
-        $roomId = 456;
+        $roomId = ChatRoom::factory()->create()->id;
         $deletedBy = 789;
 
         // Act
@@ -22,7 +26,7 @@ class MessageDeletedTest extends TestCase
         // Assert
         $this->assertCount(1, $channels);
         $this->assertInstanceOf(Channel::class, $channels[0]);
-        $this->assertEquals("chat.room.{$roomId}", $channels[0]->name);
+        $this->assertEquals("private-chat.room.{$roomId}", $channels[0]->name);
     }
 
     public function test_message_deleted_event_has_correct_broadcast_name()

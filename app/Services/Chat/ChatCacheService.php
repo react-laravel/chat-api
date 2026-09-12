@@ -63,11 +63,25 @@ class ChatCacheService
             ])
             ->orderBy('created_at', 'desc');
 
-        if ($userId !== null) {
+        if ($userId !== null && ! User::find($userId)?->isAdmin()) {
             $query->where(function ($q) use ($userId) {
                 $q->where('is_private', false)
                     ->orWhereHas('roomUsers', fn ($q2) => $q2->where('user_id', $userId));
             });
+        }
+
+        if ($userId !== null) {
+            $query->addSelect(['last_read_message_id' => ChatRoomUser::select('last_read_message_id')
+                ->whereColumn('room_id', 'chat_rooms.id')->where('user_id', $userId)->limit(1)])
+                ->withCount(['messages as unread_count' => function ($messages) use ($userId) {
+                    $messages->where('message_type', 'text')->where('user_id', '!=', $userId)
+                        ->whereExists(function ($members) use ($userId) {
+                            $members->selectRaw('1')->from('chat_room_users')
+                                ->whereColumn('chat_room_users.room_id', 'chat_messages.room_id')
+                                ->where('chat_room_users.user_id', $userId)
+                                ->whereRaw('chat_messages.id > COALESCE(chat_room_users.last_read_message_id, 0)');
+                        });
+                }]);
         }
 
         return $query->get();
