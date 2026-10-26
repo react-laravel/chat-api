@@ -1,0 +1,1 @@
+chat-api-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart dogeow-test-chat-fpm.service, /usr/bin/systemctl restart dogeow-test-chat-queue.service, /usr/bin/systemctl restart dogeow-test-chat-reverb.service
